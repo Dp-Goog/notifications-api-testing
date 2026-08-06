@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.google.androidbrowserhelper.demos.twa_notification_high_priority",
+    "sha256_cert_fingerprints": [
+      "C2:C8:16:09:D3:87:4F:A1:A7:4D:72:1F:BB:7E:32:A5:B1:15:15:D5:54:74:EE:CE:72:EB:0C:74:A8:AA:73:CF"
+    ]
+  }
+}]
