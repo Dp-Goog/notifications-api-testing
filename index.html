@@ -65,6 +65,34 @@
       <input type="checkbox" id="swUseBadge" />
       <label for="swUseBadge">Use badge</label>
     </div>
+
+    <h3>
+      Service Worker Status
+    </h3>
+    <div id="swControls">
+      <p id="swStatus">Checking Service Worker status...</p>
+      <button id="swRegister" type="button">
+        Register SW
+      </button>
+      <button id="swUnregister" type="button">
+        Unregister SW
+      </button>
+    </div>
+
+    <h3>
+      Web Share Target Received Data
+    </h3>
+    <div id="shareTargetSection">
+      <p id="shareTargetStatus">No shared data received in this navigation.</p>
+      <div id="shareTargetDetails" class="hidden">
+        <p><b>Title:</b> <span id="sharedTitle"></span></p>
+        <p><b>Text:</b> <span id="sharedText"></span></p>
+        <p><b>URL:</b> <span id="sharedUrl"></span></p>
+        <p><b>Files:</b> <span id="sharedFiles"></span></p>
+        <div id="sharedFilesPreview"></div>
+      </div>
+    </div>
+
     <script src="common.js"></script>
     <script src="demo.js"></script>
   </body>
