@@ -133,6 +133,38 @@ function renderSharedData({title, text, url, filesSummary, rawFiles}) {
   }
 }
 
+// Must match SHARE_CACHE and SHARE_META_URL in sw.js.
+const SHARE_CACHE = "share-target-v1";
+const SHARE_META_URL = new URL("./shared/meta.json", window.location.href).href;
+
+// Reads the most recent share that sw.js saved in Cache Storage.
+async function loadSharedDataFromCache() {
+  if (!("caches" in window)) return;
+  const cache = await caches.open(SHARE_CACHE);
+  const metaResponse = await cache.match(SHARE_META_URL);
+  if (!metaResponse) return;
+  const meta = await metaResponse.json();
+
+  const rawFiles = [];
+  for (const entry of meta.files || []) {
+    const fileResponse = await cache.match(entry.key);
+    if (!fileResponse) continue;
+    const blob = await fileResponse.blob();
+    rawFiles.push(new File([blob], entry.name, {type: entry.type}));
+  }
+
+  const filesSummary = (meta.files || [])
+    .map((f) => `${f.name} (${f.type || "unknown"}, ${f.size} bytes)`)
+    .join(", ");
+  renderSharedData({
+    title: meta.title,
+    text: meta.text,
+    url: meta.url,
+    filesSummary,
+    rawFiles
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const isShared =
@@ -150,28 +182,11 @@ window.addEventListener("DOMContentLoaded", () => {
       filesSummary: params.get("files") || ""
     });
 
-    if ("serviceWorker" in navigator) {
-      postMessageToSw({type: "get_shared_data"});
+    if (params.get("shared") === "1") {
+      loadSharedDataFromCache().catch((e) =>
+        console.error("Failed to read shared data from cache", e)
+      );
     }
   }
 });
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "shared_data" && event.data.payload) {
-      const payload = event.data.payload;
-      const files = payload.files || [];
-      const filesSummary = files
-        .map((f) => `${f.name} (${f.type || "unknown"}, ${f.size} bytes)`)
-        .join(", ");
-      renderSharedData({
-        title: payload.title,
-        text: payload.text,
-        url: payload.url,
-        filesSummary,
-        rawFiles: files
-      });
-    }
-  });
-}
 
