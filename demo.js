@@ -190,3 +190,34 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+/* Inline reply */
+const replyShow = document.getElementById("replyShow");
+const replyLog = document.getElementById("replyLog");
+
+document.getElementById("replySupport").textContent =
+  `Notification.maxActions = ${
+    "Notification" in window && "maxActions" in Notification
+      ? Notification.maxActions
+      : "not supported"
+  }`;
+
+replyShow.addEventListener("click", async () => {
+  if ((await Notification.requestPermission()) !== "granted") return;
+  postMessageToSw({
+    type: "show_reply_notification",
+    usePlaceholder: document.getElementById("replyPlaceholder").checked,
+    addSecondButton: document.getElementById("replySecondButton").checked
+  });
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (!event.data || event.data.type !== "notification_click") return;
+    const {time, action, reply, replySupported} = event.data;
+    const li = document.createElement("li");
+    li.textContent =
+      `${time} action=${JSON.stringify(action)} ` +
+      `reply=${JSON.stringify(reply)} replySupported=${replySupported}`;
+    replyLog.prepend(li);
+  });
+}

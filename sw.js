@@ -94,11 +94,35 @@ function displaySwNotification(useBadge) {
   self.registration.showNotification("Text from service worker", options);
 }
 
+// Inline reply test: a "text" action makes the OS show a reply field.
+// The typed text arrives as NotificationEvent.reply in notificationclick.
+function showReplyNotification({usePlaceholder, addSecondButton}) {
+  const actions = [{action: "reply", title: "Reply", type: "text"}];
+  if (usePlaceholder) {
+    actions[0].placeholder = "Type a reply";
+  }
+  if (addSecondButton) {
+    actions.push({action: "other", title: "Other"});
+  }
+  return self.registration.showNotification("Inline reply test", {
+    body: "Type a reply in this notification",
+    icon: "house.png",
+    tag: "inline-reply-test",
+    requireInteraction: true,
+    actions,
+    data: {primaryKey: 2, kind: "reply-test"}
+  });
+}
+
 self.addEventListener("message", event => {
   if (!event.data) return;
 
   if (event.data.type === "show_notification") {
     displaySwNotification(event.data.useBadge);
+  }
+
+  if (event.data.type === "show_reply_notification") {
+    event.waitUntil(showReplyNotification(event.data));
   }
 
   if (event.data.type === "close_all") {
@@ -112,17 +136,40 @@ self.addEventListener("message", event => {
 });
 
 self.addEventListener("notificationclick", function(e) {
-  var notification = e.notification;
-  var primaryKey = notification.data.primaryKey;
-  var action = e.action;
+  const notification = e.notification;
+  const data = notification.data || {};
+  notification.close();
+  console.log("[ServiceWorker] Clicked notification: " + data.primaryKey);
+  if (data.kind !== "reply-test") return;
 
-  if (action === "close") {
-    notification.close();
-  } else {
-    console.log("[ServiceWorker] Clicked notification: " + primaryKey);
-    notification.close();
-  }
+  const result = {
+    type: "notification_click",
+    time: new Date().toLocaleTimeString(),
+    action: e.action,
+    // undefined = the browser has no inline reply API, null = no text.
+    reply: e.reply,
+    replySupported: "reply" in e
+  };
+  e.waitUntil(reportReply(result));
 });
+
+async function reportReply(result) {
+  const windows = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true
+  });
+  windows.forEach((client) => client.postMessage(result));
+  // A second notification shows the result when no page is open
+  // (Windows activation, Android, TWA).
+  await self.registration.showNotification(
+    `action="${result.action}" reply=${JSON.stringify(result.reply)}`,
+    {
+      body: `replySupported=${result.replySupported}`,
+      tag: "inline-reply-result",
+      data: {kind: "reply-result"}
+    }
+  );
+}
 
 self.addEventListener("notificationclose", function(e) {
   var notification = e.notification;
